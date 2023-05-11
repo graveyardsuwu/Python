@@ -1,0 +1,134 @@
+"""
+Discord Status Bot for executors/luarmor using whatexploitsare.online api.
+Rushed and not really readable but it's ok.
+"""
+
+import discord
+import requests
+import asyncio
+import datetime
+
+
+class StatusBot:
+    def __init__(self, token: str, excludedNames: list, luarmorUrl: str, headers: dict):
+        self.token = token
+        self.excludedNames = excludedNames
+        self.luarmorUrl = luarmorUrl
+        self.headers = headers
+        self.client = discord.Client(intents=discord.Intents.default())
+        self.sentMessages = {}
+
+
+    async def updateStatus(self, channel: discord.TextChannel):
+        response2 = requests.get(self.luarmorUrl, headers=self.headers)
+        response = requests.get("https://api.whatexploitsare.online/status")
+        data = response.json()
+
+        if (channel.guild.id, channel.id) in self.sentMessages:
+            for msg in self.sentMessages[(channel.guild.id, channel.id)]:
+                await msg.delete()
+
+        self.sentMessages[(channel.guild.id, channel.id)] = []
+
+        loadingEmbed = discord.Embed(title="Loading Data 🚀", description="Please wait.", color=0xFFA500)
+        loadingMessage = await channel.send(embed=loadingEmbed)
+
+        await asyncio.sleep(3)
+        await loadingMessage.delete()
+        await self.sendStatus(data, channel)
+
+        if response2.status_code == 200:
+            data = response2.json()
+            await self.sendLuarmor(data, channel)
+
+        await asyncio.sleep(5)
+
+
+    async def sendStatus(self, data: dict, channel: discord.TextChannel):
+        for item in data:
+            if isinstance(item, dict):
+                for name in item.keys():
+                    if name not in self.excludedNames:
+                        embed = self.buildEmbed(name, item[name])
+                        sentMsg = await channel.send(embed=discord.Embed.from_dict(embed))
+                        self.sentMessages[(channel.guild.id, channel.id)].append(sentMsg)
+
+
+    def buildEmbed(self, name: str, exploit_data: dict) -> dict:
+        updated = exploit_data.get("updated", False)
+        apiCheck = "✅" if updated else "❌"
+        color = 0x00FF00 if updated else 0xFF0000
+        image = self.buildImage(name)
+        version = exploit_data.get("exploit_version", "Unknown")
+
+        return {
+            "title": name,
+            "description": f"API: {apiCheck}\nVersion: {version}",
+            "color": color,
+            "thumbnail": {"url": image},
+            "footer": {"icon_url": image, "text": f"{datetime.datetime.now().strftime('%Y-%m-%d | %H:%M:%S')}"},
+        }
+
+
+    def buildImage(self, name: str) -> str:
+        images = {
+            "Synapse": "https://cdn.discordapp.com/attachments/1075563608790020207/1105971642473119935/Synapse.png",
+            "Script-Ware": "https://cdn.discordapp.com/attachments/1075563608790020207/1105971642221481984/ScriptWare.png",
+            "KRNL": "https://cdn.discordapp.com/attachments/1075563608790020207/1105971641734922340/KRNL.png",
+            "Fluxus": "https://cdn.discordapp.com/attachments/1075563608790020207/1105971641969819658/Fluxus.png",
+        }
+        return images.get(name, "")
+
+
+    async def sendLuarmor(self, data: dict, channel: discord.TextChannel):
+        message = data["message"]
+        version = data["version"].capitalize()
+        api = True if message == "API is up and working!" else False
+        apiStatus = "✅" if api else "❌"
+        luarmorColor = 0x00FF00 if api else 0xFF0000
+        luarmorEmbed = {
+            "title": "Luarmor Status",
+            "description": f"API: {apiStatus}\nVersion: {version}",
+            "color": luarmorColor,
+            "thumbnail": {"url": "https://cdn.discordapp.com/attachments/1075563608790020207/1105878993539956857/390388d2d21948fc9081b576870b7bad.png"},
+            "footer": {"icon_url": "https://cdn.discordapp.com/attachments/1075563608790020207/1105878993539956857/390388d2d21948fc9081b576870b7bad.png", "text": f"{datetime.datetime.now().strftime('%Y-%m-%d | %H:%M:%S')}"},
+        }
+
+        luarmorMsg = await channel.send(embed=discord.Embed.from_dict(luarmorEmbed))
+        self.sentMessages[(channel.guild.id, channel.id)].append(luarmorMsg)
+
+    async def sendCountdown(self, channel: discord.TextChannel, duration: int):
+        countdownMessage = await channel.send(f"**Updating in {duration} seconds...**")
+        for i in range(duration - 1, 0, -1):
+            await asyncio.sleep(1)
+            await countdownMessage.edit(content=f"**Updating in {i} seconds...**")
+        await countdownMessage.delete()    
+
+    def run(self):
+        @self.client.event
+        async def on_ready():
+            print(f'{self.client.user} is ready.')
+
+            serverID = 0
+            textchannelID = 0
+
+            while True:
+                targetGuild = self.client.get_guild(serverID)
+                if targetGuild is not None:
+                    targetChannel = targetGuild.get_channel(textchannelID)
+                    if targetChannel is not None and targetChannel.permissions_for(targetGuild.me).send_messages:
+                        await self.updateStatus(targetChannel)
+                        await self.sendCountdown(targetChannel, 300)
+
+
+        self.client.run(self.token)
+
+
+if __name__ == "__main__":
+    token = ""
+    excludedNames = ["ROBLOX", "DX9WARE", "Electron", "WeAreDevs API", "Oxygen-U", "Celestial", "Comet", "Elexe"]
+    luarmorUrl = "https://api.luarmor.net/status"
+    headers = {"Accept": "application/json"}
+
+    bot = StatusBot(token, excludedNames, luarmorUrl, headers)
+    bot.run()
