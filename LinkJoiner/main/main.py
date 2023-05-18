@@ -69,11 +69,6 @@ def run():
         print("Error: Incomplete credentials.")
         return
 
-    robloxToken = credentials["RobloxToken"]
-    placeId = 2788229376
-    discordToken = credentials["DiscordToken"]
-    discordChannelId = credentials["DiscordChannelId"]
-
     robloxUpdater = RobloxUpdater(robloxToken)
     robloxUpdater.checkVersion()
     csrfToken = robloxUpdater.fetchCsrfToken()
