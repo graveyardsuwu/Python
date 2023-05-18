@@ -7,11 +7,11 @@ from main import menu
 # So ugly but who cares
 os.system('mode 96,20')
 os.system(f'title Launching Bootstrapper.py')
-latestVersionURL = "https://raw.githubusercontent.com/xsuley/Python/main/LinkJoiner/version.txt"
+latestVersionURL = "https://raw.githubusercontent.com/graveyardsuwu/Python/main/LinkJoiner/version.txt"
 versionName = 'version.txt'
 localVersion = None
 
-response = requests.get("https://raw.githubusercontent.com/xsuley/Python/main/LinkJoiner/download.txt")
+response = requests.get("https://raw.githubusercontent.com/graveyardsuwu/Python/main/LinkJoiner/download.txt")
 download = response.text.strip()
 
 binFolder = "bin"
