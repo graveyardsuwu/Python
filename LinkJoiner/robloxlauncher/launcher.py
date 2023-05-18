@@ -4,7 +4,7 @@ class RobloxLauncher:
     def __init__(self, placeId: int, cookie: str, csrfToken: str, authToken: str):
         self.placeId = placeId
         self.cookie = cookie
-        self.privateLink = "https://www.roblox.com/games/2788229376?privateServerLinkCode=38818314208095470563783694741053"
+        self.privateLink = ""
         self.csrfToken = csrfToken
         self.authToken = authToken
 
